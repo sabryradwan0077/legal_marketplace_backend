@@ -1,34 +1,26 @@
 import streamlit as st
 
-# إعداد الصفحة
-st.set_page_config(page_title="الحصن القانوني - Sabry Radwan", layout="wide", page_icon="⚖️")
+# -------------------------
+# نظام تسجيل دخول بسيط
+# -------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-# ستايل كحلي وذهبي
-st.markdown("""
-    <style>
-    .main { background-color: #001f3f; color: white; }
-    .stMetric { background-color: #002b5c; padding: 15px; border-radius: 10px; border: 1px solid #FFD700; }
-    </style>
-    <div style="background-color:#001f3f; padding:25px; border-radius:15px; border: 2px solid #FFD700; text-align:center;">
-        <h1 style="color:#FFD700; margin-bottom:0;">⚖️ سُوق المحاماة الرّقمي ⚖️</h1>
-        <p style="color:#C0C0C0; font-size:1.2em;">بوابة المستشار صبري رضوان الذكية</p>
-    </div>
-""", unsafe_allow_html=True)
+def login():
+    st.title("🔐 تسجيل الدخول")
 
-st.write("") # مسافة
+    username = st.text_input("اسم المستخدم")
+    password = st.text_input("كلمة المرور", type="password")
 
-# عرض العدادات (بشكل تجريبي الآن)
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric(label="📊 إجمالي القضايا", value="0")
-with col2:
-    st.metric(label="👨‍⚖️ محامين متاحين", value="0")
-with col3:
-    st.metric(label="📝 عروض جديدة", value="0")
+    if st.button("دخول"):
+        if username == "admin" and password == "1234":
+            st.session_state.logged_in = True
+            st.success("تم تسجيل الدخول بنجاح")
+            st.rerun()
+        else:
+            st.error("بيانات غير صحيحة")
 
-st.success("✅ تم ربط المحرك (FastAPI) بقاعدة البيانات المشفرة بنجاح.")
-
-st.sidebar.title("القائمة الرئيسية")
-st.sidebar.button("إضافة قضية جديدة")
-st.sidebar.button("لوحة تحكم المحامين")
-st.sidebar.info(f"مفتاح الصانع نشط: {st.secrets.get('SECRET_KEY', 'مخفي')[:5]}****")
+# لو مش مسجل دخول
+if not st.session_state.logged_in:
+    login()
+    st.stop()
