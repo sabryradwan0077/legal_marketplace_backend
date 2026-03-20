@@ -1,3 +1,5 @@
+import base64
+import json
 import requests
 import streamlit as st
 
@@ -5,7 +7,7 @@ import streamlit as st
 # إعدادات عامة
 # =========================
 st.set_page_config(
-    page_title="سوق المحاماة الرقمي",
+    page_title="LEGAL MARKETPLACE - SABRY RADWAN",
     page_icon="⚖️",
     layout="wide"
 )
@@ -36,75 +38,253 @@ if "user_email" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
+if "flash_success" not in st.session_state:
+    st.session_state["flash_success"] = None
+
+if "flash_error" not in st.session_state:
+    st.session_state["flash_error"] = None
+
 
 # =========================
 # CSS
 # =========================
 st.markdown("""
 <style>
-html, body, [class*="css"]  {
+html, body, [class*="css"] {
     direction: rtl;
     text-align: right;
 }
-.main-title {
+
+.stApp {
+    background:
+        radial-gradient(circle at top right, rgba(212,175,55,0.15), transparent 25%),
+        radial-gradient(circle at bottom left, rgba(212,175,55,0.08), transparent 22%),
+        linear-gradient(135deg, #06111f 0%, #081827 35%, #0b2034 70%, #09121c 100%);
+    color: #f5f0df;
+}
+
+.main-brand {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.main-brand h1 {
     color: #f4d35e;
-    font-size: 48px;
+    font-size: 56px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.main-brand p {
+    color: #d7dbe0;
+    font-size: 22px;
+    margin: 0;
+}
+
+.auth-wrapper {
+    max-width: 1100px;
+    margin: 20px auto 10px auto;
+}
+
+.hero-card {
+    background: linear-gradient(180deg, rgba(10,25,40,0.96), rgba(6,18,31,0.96));
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 28px;
+    padding: 35px 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    min-height: 520px;
+}
+
+.hero-title {
+    color: #f4d35e;
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 16px;
+}
+
+.hero-text {
+    color: #d9dfe7;
+    font-size: 18px;
+    line-height: 1.9;
+    margin-bottom: 12px;
+}
+
+.feature-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(212,175,55,0.18);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    color: #e8edf5;
+    font-size: 16px;
+}
+
+.auth-card {
+    background: rgba(7, 20, 33, 0.96);
+    border: 1px solid rgba(212,175,55,0.42);
+    border-radius: 28px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+.card-title {
+    color: #f4d35e;
+    font-size: 28px;
     font-weight: 800;
     text-align: center;
-    margin-top: 5px;
+    margin-bottom: 8px;
 }
-.sub-title {
-    color: #d9d9d9;
-    font-size: 22px;
+
+.card-subtitle {
+    color: #d6dce5;
+    font-size: 15px;
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 18px;
 }
-.stat-box {
-    background: #0b2a4a;
-    border: 2px solid #d4af37;
+
+.metric-card {
+    background: linear-gradient(180deg, #0d2742, #0a1f34);
+    border: 1px solid rgba(212,175,55,0.35);
     border-radius: 24px;
-    padding: 25px;
-    color: white;
+    padding: 24px;
     text-align: center;
-    margin-bottom: 20px;
-    min-height: 180px;
+    color: white;
+    min-height: 170px;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.22);
 }
+
+.metric-card h3 {
+    font-size: 22px;
+    margin-bottom: 16px;
+    color: #f7f7f7;
+}
+
+.metric-card h1 {
+    font-size: 42px;
+    color: #f4d35e;
+    margin: 0;
+}
+
+.section-box {
+    background: rgba(7, 20, 33, 0.95);
+    border: 1px solid rgba(212,175,55,0.30);
+    border-radius: 24px;
+    padding: 20px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
 .small-card {
-    background: #102c4c;
-    border: 1px solid #d4af37;
-    border-radius: 16px;
+    background: linear-gradient(180deg, #102b47, #0b2034);
+    border: 1px solid rgba(212,175,55,0.28);
+    border-radius: 18px;
     padding: 16px;
     margin-bottom: 12px;
-    color: white;
+    color: #f5f6f8;
 }
-.section-title {
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    margin-top: 10px;
+
+.badge-line {
+    background: rgba(212,175,55,0.12);
+    border: 1px solid rgba(212,175,55,0.28);
+    color: #f4d35e;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 14px;
+}
+
+div[data-testid="stForm"] {
+    border: none !important;
+    background: transparent !important;
+}
+
+div.stButton > button,
+div[data-testid="stFormSubmitButton"] > button {
+    background: linear-gradient(90deg, #d4af37, #f4d35e);
+    color: #08111f !important;
+    font-weight: 800 !important;
+    border: none !important;
+    border-radius: 14px !important;
+    min-height: 46px !important;
+}
+
+div.stButton > button:hover,
+div[data-testid="stFormSubmitButton"] > button:hover {
+    filter: brightness(1.04);
+}
+
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div,
+textarea {
+    border-radius: 14px !important;
+}
+
+.block-title {
+    color: #f4d35e;
+    font-size: 28px;
+    font-weight: 800;
     margin-bottom: 10px;
 }
-.role-badge {
-    background: #d4af37;
-    color: #08111f;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-weight: bold;
-    display: inline-block;
-    margin-bottom: 15px;
+
+hr {
+    border-color: rgba(212,175,55,0.22);
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # =========================
-# API Helpers
+# Helpers
 # =========================
+def set_success(msg: str):
+    st.session_state["flash_success"] = msg
+
+
+def set_error(msg: str):
+    st.session_state["flash_error"] = msg
+
+
+def show_flash_messages():
+    if st.session_state.get("flash_success"):
+        st.success(st.session_state["flash_success"])
+        st.session_state["flash_success"] = None
+
+    if st.session_state.get("flash_error"):
+        st.error(st.session_state["flash_error"])
+        st.session_state["flash_error"] = None
+
+
+def decode_jwt_payload(token: str):
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return {}
+
+        payload_b64 = parts[1]
+        padding = "=" * (-len(payload_b64) % 4)
+        decoded = base64.urlsafe_b64decode(payload_b64 + padding)
+        return json.loads(decoded.decode("utf-8"))
+    except Exception:
+        return {}
+
+
 def get_headers():
     token = st.session_state.get("token")
     if not token:
         return {}
     return {"Authorization": f"Bearer {token}"}
+
+
+def check_backend():
+    try:
+        response = requests.get(f"{API_URL}/", timeout=10)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
 
 
 def register_api(full_name, email, password, role, specialization=None, phone=None):
@@ -204,13 +384,6 @@ def create_proposal_api(case_id, offer_text, price, estimated_days):
         return None
 
 
-def decode_role_from_cases_fallback():
-    """
-    احتياطي فقط إذا لم نعرف الدور من الواجهة.
-    """
-    return st.session_state.get("user_role")
-
-
 def do_logout():
     st.session_state["logged_in"] = False
     st.session_state["token"] = None
@@ -218,19 +391,24 @@ def do_logout():
     st.session_state["user_role"] = None
 
 
-def check_backend():
-    try:
-        response = requests.get(f"{API_URL}/", timeout=10)
-        return response.status_code == 200
-    except requests.RequestException:
-        return False
+def get_role_label(role: str):
+    mapping = {
+        "client": "عميل",
+        "lawyer": "محامٍ",
+        "admin": "إدارة"
+    }
+    return mapping.get(role, role)
 
 
 # =========================
 # Header
 # =========================
-st.markdown('<div class="main-title">سوق المحاماة الرقمي</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">بوابة المستشار صبري رضوان الذكية</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="main-brand">
+    <h1>LEGAL MARKETPLACE</h1>
+    <p>منصة قانونية رقمية احترافية بإشراف المستشار صبري رضوان</p>
+</div>
+""", unsafe_allow_html=True)
 
 backend_ok = check_backend()
 if not backend_ok:
@@ -239,126 +417,160 @@ if not backend_ok:
 
 
 # =========================
-# Auth Screen
+# Authentication Screen
 # =========================
 if not st.session_state["logged_in"]:
-    tab_login, tab_register = st.tabs(["تسجيل الدخول", "إنشاء حساب"])
+    show_flash_messages()
 
-    with tab_login:
-        st.markdown("### تسجيل الدخول")
-        login_email = st.text_input("البريد الإلكتروني", key="login_email")
-        login_password = st.text_input("كلمة المرور", type="password", key="login_password")
+    left_col, right_col = st.columns([1.2, 1], gap="large")
 
-        if st.button("دخول", use_container_width=True):
-            if not login_email or not login_password:
-                st.error("أدخل البريد الإلكتروني وكلمة المرور")
-            else:
-                response = login_api(login_email, login_password)
-                if response is None:
-                    st.error("تعذر الاتصال بالسيرفر")
-                elif response.status_code == 200:
-                    data = response.json()
-                    st.session_state["token"] = data["access_token"]
-                    st.session_state["logged_in"] = True
-                    st.session_state["user_email"] = login_email
-                    st.success("تم تسجيل الدخول بنجاح")
-                    st.rerun()
-                else:
-                    try:
-                        msg = response.json().get("detail", "فشل تسجيل الدخول")
-                    except Exception:
-                        msg = "فشل تسجيل الدخول"
-                    st.error(msg)
+    with left_col:
+        st.markdown("""
+        <div class="hero-card">
+            <div class="hero-title">منظومة قانونية رقمية بمستوى مؤسسي</div>
+            <div class="hero-text">
+                تربط بين العملاء والمحامين داخل بيئة احترافية آمنة، مع تنظيم القضايا حسب التخصص،
+                وإدارة العروض القانونية، وبنية تشغيل قابلة للتوسع.
+            </div>
+            <div class="feature-box">⚖️ إدارة طلبات الاستشارات والقضايا بشكل منظم</div>
+            <div class="feature-box">🧑‍⚖️ توجيه القضايا حسب التخصص القانوني بدقة</div>
+            <div class="feature-box">📑 استقبال عروض المحامين ومقارنتها</div>
+            <div class="feature-box">🔐 تشغيل آمن وهوية بصرية احترافية</div>
+            <div class="feature-box">🏛 مناسب للتطوير لاحقًا إلى تطبيق موبايل ومنصة كاملة</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    with tab_register:
-        st.markdown("### إنشاء حساب جديد")
-        reg_full_name = st.text_input("الاسم الكامل", key="reg_full_name")
-        reg_email = st.text_input("البريد الإلكتروني", key="reg_email")
-        reg_password = st.text_input("كلمة المرور", type="password", key="reg_password")
-        reg_phone = st.text_input("رقم الهاتف", key="reg_phone")
-        reg_role = st.selectbox("نوع الحساب", ["client", "lawyer"], key="reg_role")
+    with right_col:
+        auth_tab_login, auth_tab_register = st.tabs(["تسجيل الدخول", "إنشاء حساب"])
 
-        reg_specialization = None
-        if reg_role == "lawyer":
-            reg_specialization = st.selectbox("التخصص", SPECIALIZATIONS, key="reg_specialization")
+        with auth_tab_login:
+            st.markdown("""
+            <div class="auth-card">
+                <div class="card-title">بوابة الدخول</div>
+                <div class="card-subtitle">ادخل إلى لوحة التحكم القانونية الاحترافية</div>
+            """, unsafe_allow_html=True)
 
-        if st.button("إنشاء الحساب", use_container_width=True):
-            if not reg_full_name or not reg_email or not reg_password:
-                st.error("أكمل البيانات الأساسية")
-            else:
-                response = register_api(
-                    full_name=reg_full_name,
-                    email=reg_email,
-                    password=reg_password,
-                    role=reg_role,
-                    specialization=reg_specialization,
-                    phone=reg_phone
-                )
+            with st.form("login_form"):
+                login_email = st.text_input("البريد الإلكتروني")
+                login_password = st.text_input("كلمة المرور", type="password")
+                login_submit = st.form_submit_button("دخول")
 
-                if response is None:
-                    st.error("تعذر الاتصال بالسيرفر")
-                elif response.status_code == 200:
-                    st.success("تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.")
-                else:
-                    try:
-                        msg = response.json().get("detail", "تعذر إنشاء الحساب")
-                    except Exception:
-                        msg = "تعذر إنشاء الحساب"
-                    st.error(msg)
+                if login_submit:
+                    if not login_email.strip() or not login_password.strip():
+                        st.error("أدخل البريد الإلكتروني وكلمة المرور")
+                    else:
+                        response = login_api(login_email.strip(), login_password.strip())
+
+                        if response is None:
+                            st.error("تعذر الاتصال بالسيرفر")
+                        elif response.status_code == 200:
+                            data = response.json()
+                            token = data["access_token"]
+                            payload = decode_jwt_payload(token)
+
+                            st.session_state["token"] = token
+                            st.session_state["logged_in"] = True
+                            st.session_state["user_email"] = payload.get("email", login_email.strip())
+                            st.session_state["user_role"] = payload.get("role", "client")
+
+                            set_success("تم تسجيل الدخول بنجاح")
+                            st.rerun()
+                        else:
+                            try:
+                                msg = response.json().get("detail", "فشل تسجيل الدخول")
+                            except Exception:
+                                msg = "فشل تسجيل الدخول"
+                            st.error(msg)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with auth_tab_register:
+            st.markdown("""
+            <div class="auth-card">
+                <div class="card-title">إنشاء حساب جديد</div>
+                <div class="card-subtitle">سجل كعميل أو محامٍ وابدأ استخدام المنصة</div>
+            """, unsafe_allow_html=True)
+
+            with st.form("register_form"):
+                reg_full_name = st.text_input("الاسم الكامل")
+                reg_email = st.text_input("البريد الإلكتروني")
+                reg_password = st.text_input("كلمة المرور", type="password")
+                reg_phone = st.text_input("رقم الهاتف")
+                reg_role = st.selectbox("نوع الحساب", ["client", "lawyer"])
+
+                reg_specialization = None
+                if reg_role == "lawyer":
+                    reg_specialization = st.selectbox("التخصص القانوني", SPECIALIZATIONS)
+
+                reg_submit = st.form_submit_button("إنشاء الحساب")
+
+                if reg_submit:
+                    if not reg_full_name.strip() or not reg_email.strip() or not reg_password.strip():
+                        st.error("أكمل البيانات الأساسية")
+                    else:
+                        response = register_api(
+                            full_name=reg_full_name.strip(),
+                            email=reg_email.strip(),
+                            password=reg_password.strip(),
+                            role=reg_role,
+                            specialization=reg_specialization,
+                            phone=reg_phone.strip() if reg_phone.strip() else None
+                        )
+
+                        if response is None:
+                            st.error("تعذر الاتصال بالسيرفر")
+                        elif response.status_code == 200:
+                            set_success("تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.")
+                            st.rerun()
+                        else:
+                            try:
+                                msg = response.json().get("detail", "تعذر إنشاء الحساب")
+                            except Exception:
+                                msg = "تعذر إنشاء الحساب"
+                            st.error(msg)
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
 
 
 # =========================
-# Main Data
+# Main App
 # =========================
+show_flash_messages()
+
 cases = fetch_cases()
+user_role = st.session_state.get("user_role", "client")
+role_label = get_role_label(user_role)
 
-# محاولة تحديد الدور من الشاشة الحالية
-# في هذا المشروع البسيط نأخذه من اختيار المستخدم عند التسجيل/التعامل
-if st.session_state["user_role"] is None:
-    st.session_state["user_role"] = decode_role_from_cases_fallback()
-
-user_role = st.session_state.get("user_role")
-
-# لو المستخدم دخل مباشرة بدون أن نعرف دوره، نتركه يحدده يدويًا
-if not user_role:
-    st.session_state["user_role"] = st.selectbox(
-        "حدد نوع حسابك الحالي لعرض الواجهة المناسبة",
-        ["client", "lawyer", "admin"],
-        key="manual_role_select"
-    )
-    user_role = st.session_state["user_role"]
-
-# =========================
-# Stats
-# =========================
 all_proposals_count = 0
-for c in cases:
-    all_proposals_count += len(fetch_case_proposals(c["id"]))
+for case in cases:
+    all_proposals_count += len(fetch_case_proposals(case["id"]))
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown(
-        f'<div class="stat-box"><h2>📊 إجمالي القضايا</h2><h1>{len(cases)}</h1></div>',
+        f'<div class="metric-card"><h3>📊 إجمالي القضايا</h3><h1>{len(cases)}</h1></div>',
         unsafe_allow_html=True
     )
 
 with col2:
     st.markdown(
-        f'<div class="stat-box"><h2>🧾 إجمالي العروض</h2><h1>{all_proposals_count}</h1></div>',
+        f'<div class="metric-card"><h3>🧾 إجمالي العروض</h3><h1>{all_proposals_count}</h1></div>',
         unsafe_allow_html=True
     )
 
 with col3:
-    badge = "عميل" if user_role == "client" else "محامٍ" if user_role == "lawyer" else "إدارة"
     st.markdown(
-        f'<div class="stat-box"><h2>👤 نوع الحساب</h2><h1 style="font-size:32px">{badge}</h1></div>',
+        f'<div class="metric-card"><h3>👤 نوع الحساب</h3><h1 style="font-size:30px">{role_label}</h1></div>',
         unsafe_allow_html=True
     )
 
-st.markdown(f'<div class="role-badge">البريد الحالي: {st.session_state["user_email"]}</div>', unsafe_allow_html=True)
+st.markdown(
+    f'<div class="badge-line">الحساب الحالي: {st.session_state["user_email"]} | الصفة: {role_label}</div>',
+    unsafe_allow_html=True
+)
 
 
 # =========================
@@ -368,7 +580,9 @@ if user_role == "client":
     tab1, tab2 = st.tabs(["إضافة قضية جديدة", "قضاياي والعروض"])
 
     with tab1:
-        st.markdown("### إضافة قضية جديدة")
+        st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="block-title">إضافة قضية جديدة</div>', unsafe_allow_html=True)
+
         with st.form("create_case_form"):
             case_title = st.text_input("عنوان القضية")
             case_description = st.text_area("وصف القضية")
@@ -384,10 +598,11 @@ if user_role == "client":
                         description=case_description.strip(),
                         specialization=case_specialization
                     )
+
                     if response is None:
                         st.error("تعذر الاتصال بالسيرفر")
                     elif response.status_code == 200:
-                        st.success("تم إنشاء القضية بنجاح")
+                        set_success("تم إنشاء القضية بنجاح")
                         st.rerun()
                     else:
                         try:
@@ -396,8 +611,12 @@ if user_role == "client":
                             msg = "تعذر إنشاء القضية"
                         st.error(msg)
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     with tab2:
-        st.markdown("### قضاياي")
+        st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="block-title">قضاياي والعروض</div>', unsafe_allow_html=True)
+
         if not cases:
             st.info("لا توجد قضايا بعد")
         else:
@@ -426,6 +645,10 @@ if user_role == "client":
                 else:
                     st.warning("لا توجد عروض بعد لهذه القضية")
 
+                st.markdown("<hr>", unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
 # =========================
 # Lawyer View
@@ -434,7 +657,9 @@ elif user_role == "lawyer":
     tab1, tab2 = st.tabs(["القضايا المتاحة", "تقديم عرض"])
 
     with tab1:
-        st.markdown("### القضايا المناسبة لتخصصك")
+        st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="block-title">القضايا المناسبة لتخصصك</div>', unsafe_allow_html=True)
+
         if not cases:
             st.info("لا توجد قضايا متاحة حاليًا")
         else:
@@ -452,8 +677,12 @@ elif user_role == "lawyer":
                     unsafe_allow_html=True
                 )
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     with tab2:
-        st.markdown("### تقديم عرض على قضية")
+        st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="block-title">تقديم عرض على قضية</div>', unsafe_allow_html=True)
+
         if not cases:
             st.info("لا توجد قضايا لتقديم عروض عليها")
         else:
@@ -477,10 +706,11 @@ elif user_role == "lawyer":
                             price=price,
                             estimated_days=estimated_days
                         )
+
                         if response is None:
                             st.error("تعذر الاتصال بالسيرفر")
                         elif response.status_code == 200:
-                            st.success("تم إرسال العرض بنجاح")
+                            set_success("تم إرسال العرض بنجاح")
                             st.rerun()
                         else:
                             try:
@@ -489,12 +719,16 @@ elif user_role == "lawyer":
                                 msg = "تعذر إرسال العرض"
                             st.error(msg)
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
 # =========================
 # Admin View
 # =========================
 else:
-    st.markdown("### لوحة الإدارة")
+    st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.markdown('<div class="block-title">لوحة الإدارة</div>', unsafe_allow_html=True)
+
     if not cases:
         st.info("لا توجد بيانات بعد")
     else:
@@ -521,6 +755,10 @@ else:
                     )
             else:
                 st.warning("لا توجد عروض على هذه القضية")
+
+            st.markdown("<hr>", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # =========================
