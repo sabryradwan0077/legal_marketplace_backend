@@ -29,23 +29,45 @@ def do_logout():
 
 def add_case(title, specialization, client_name):
     st.session_state["cases"].append({
+        "id": len(st.session_state["cases"]) + 1,
         "title": title,
         "specialization": specialization,
-        "client_name": client_name
+        "client_name": client_name,
+        "status": "مفتوحة"
     })
 
 def add_lawyer(name, specialization):
     st.session_state["lawyers"].append({
+        "id": len(st.session_state["lawyers"]) + 1,
         "name": name,
         "specialization": specialization
     })
 
-def add_offer(case_title, lawyer_name, price):
+def add_offer(case_id, case_title, lawyer_id, lawyer_name, price):
     st.session_state["offers"].append({
+        "id": len(st.session_state["offers"]) + 1,
+        "case_id": case_id,
         "case_title": case_title,
+        "lawyer_id": lawyer_id,
         "lawyer_name": lawyer_name,
         "price": price
     })
+
+def get_case_by_title(case_title):
+    for case in st.session_state["cases"]:
+        if case["title"] == case_title:
+            return case
+    return None
+
+def get_matching_lawyers(case_specialization):
+    return [
+        lawyer for lawyer in st.session_state["lawyers"]
+        if lawyer["specialization"] == case_specialization
+    ]
+
+def get_available_lawyers_count():
+    needed_specs = {case["specialization"] for case in st.session_state["cases"]}
+    return sum(1 for lawyer in st.session_state["lawyers"] if lawyer["specialization"] in needed_specs)
 
 
 # -------------------------
@@ -79,14 +101,6 @@ html, body, [class*="css"] {
     margin-bottom: 20px;
     min-height: 220px;
 }
-.section-box {
-    background: #081f38;
-    border: 1px solid #d4af37;
-    border-radius: 20px;
-    padding: 20px;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
 .small-card {
     background: #102c4c;
     border: 1px solid #d4af37;
@@ -94,6 +108,10 @@ html, body, [class*="css"] {
     padding: 15px;
     margin-bottom: 12px;
     color: white;
+}
+.info-line {
+    color: #d9d9d9;
+    font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -121,16 +139,16 @@ if not st.session_state["logged_in"]:
 
 
 # -------------------------
-# Dashboard Header
+# Header
 # -------------------------
-st.markdown('<div class="main-title">الرقمي</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">سوق المحاماة الرقمي</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">بوابة المستشار صبري رضوان الذكية</div>', unsafe_allow_html=True)
 
 # -------------------------
 # Stats
 # -------------------------
 total_cases = len(st.session_state["cases"])
-total_lawyers = len(st.session_state["lawyers"])
+available_lawyers = get_available_lawyers_count()
 total_offers = len(st.session_state["offers"])
 
 col1, col2, col3 = st.columns(3)
@@ -143,7 +161,7 @@ with col1:
 
 with col2:
     st.markdown(
-        f'<div class="stat-box"><h2>🧑‍⚖️ محامين متاحين</h2><h1>{total_lawyers}</h1></div>',
+        f'<div class="stat-box"><h2>🧑‍⚖️ محامين متاحين</h2><h1>{available_lawyers}</h1></div>',
         unsafe_allow_html=True
     )
 
@@ -158,7 +176,6 @@ with col3:
 # Forms
 # -------------------------
 st.markdown("## إدارة البيانات")
-
 tab1, tab2, tab3 = st.tabs(["إضافة قضية", "إضافة محامٍ", "إضافة عرض"])
 
 with tab1:
@@ -170,6 +187,7 @@ with tab1:
         )
         client_name = st.text_input("اسم العميل")
         submitted_case = st.form_submit_button("حفظ القضية")
+
         if submitted_case:
             if case_title and client_name:
                 add_case(case_title, case_specialization, client_name)
@@ -186,6 +204,7 @@ with tab2:
             ["أحوال شخصية", "جنائي", "تجاري", "عمالي", "إداري", "مدني"]
         )
         submitted_lawyer = st.form_submit_button("حفظ المحامي")
+
         if submitted_lawyer:
             if lawyer_name:
                 add_lawyer(lawyer_name, lawyer_specialization)
@@ -195,49 +214,69 @@ with tab2:
                 st.error("أدخل اسم المحامي")
 
 with tab3:
-    with st.form("offer_form"):
-        if st.session_state["cases"]:
-            case_titles = [c["title"] for c in st.session_state["cases"]]
+    if st.session_state["cases"]:
+        case_titles = [c["title"] for c in st.session_state["cases"]]
+        selected_case_title = st.selectbox("اختر القضية", case_titles, key="offer_case_select")
+
+        selected_case = get_case_by_title(selected_case_title)
+        matching_lawyers = get_matching_lawyers(selected_case["specialization"]) if selected_case else []
+
+        st.markdown(
+            f"<div class='info-line'>تخصص القضية: <b>{selected_case['specialization']}</b></div>",
+            unsafe_allow_html=True
+        )
+
+        if matching_lawyers:
+            lawyer_options = [lawyer["name"] for lawyer in matching_lawyers]
+
+            with st.form("offer_form"):
+                selected_lawyer_name = st.selectbox("اختر المحامي المناسب", lawyer_options)
+                offer_price = st.number_input("قيمة العرض", min_value=0, step=100)
+                submitted_offer = st.form_submit_button("حفظ العرض")
+
+                if submitted_offer:
+                    selected_lawyer = next(
+                        (lawyer for lawyer in matching_lawyers if lawyer["name"] == selected_lawyer_name),
+                        None
+                    )
+
+                    if selected_case and selected_lawyer:
+                        add_offer(
+                            case_id=selected_case["id"],
+                            case_title=selected_case["title"],
+                            lawyer_id=selected_lawyer["id"],
+                            lawyer_name=selected_lawyer["name"],
+                            price=offer_price
+                        )
+                        st.success("تمت إضافة العرض بنجاح")
+                        st.rerun()
+                    else:
+                        st.error("تعذر حفظ العرض")
         else:
-            case_titles = []
-
-        if st.session_state["lawyers"]:
-            lawyer_names = [l["name"] for l in st.session_state["lawyers"]]
-        else:
-            lawyer_names = []
-
-        selected_case = st.selectbox("اختر القضية", case_titles if case_titles else ["لا توجد قضايا"])
-        selected_lawyer = st.selectbox("اختر المحامي", lawyer_names if lawyer_names else ["لا يوجد محامون"])
-        offer_price = st.number_input("قيمة العرض", min_value=0, step=100)
-
-        submitted_offer = st.form_submit_button("حفظ العرض")
-
-        if submitted_offer:
-            if case_titles and lawyer_names:
-                add_offer(selected_case, selected_lawyer, offer_price)
-                st.success("تمت إضافة العرض بنجاح")
-                st.rerun()
-            else:
-                st.error("يجب إضافة قضية ومحامٍ أولًا")
+            st.warning("لا يوجد محامون مطابقون لتخصص هذه القضية. أضف محاميًا بنفس التخصص أولًا.")
+    else:
+        st.info("لا توجد قضايا بعد. أضف قضية أولًا.")
 
 
 # -------------------------
-# Listings
+# Current Data
 # -------------------------
 st.markdown("## البيانات الحالية")
-
 col_a, col_b, col_c = st.columns(3)
 
 with col_a:
     st.markdown("### القضايا")
     if st.session_state["cases"]:
         for c in st.session_state["cases"]:
+            related_offers = [o for o in st.session_state["offers"] if o["case_id"] == c["id"]]
             st.markdown(
                 f"""
                 <div class="small-card">
                     <b>العنوان:</b> {c['title']}<br>
                     <b>التخصص:</b> {c['specialization']}<br>
-                    <b>العميل:</b> {c['client_name']}
+                    <b>العميل:</b> {c['client_name']}<br>
+                    <b>الحالة:</b> {c['status']}<br>
+                    <b>عدد العروض:</b> {len(related_offers)}
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -249,11 +288,16 @@ with col_b:
     st.markdown("### المحامون")
     if st.session_state["lawyers"]:
         for l in st.session_state["lawyers"]:
+            matching_cases = [
+                case for case in st.session_state["cases"]
+                if case["specialization"] == l["specialization"]
+            ]
             st.markdown(
                 f"""
                 <div class="small-card">
                     <b>الاسم:</b> {l['name']}<br>
-                    <b>التخصص:</b> {l['specialization']}
+                    <b>التخصص:</b> {l['specialization']}<br>
+                    <b>قضايا مطابقة:</b> {len(matching_cases)}
                 </div>
                 """,
                 unsafe_allow_html=True
